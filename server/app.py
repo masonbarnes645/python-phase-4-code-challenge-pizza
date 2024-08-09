@@ -20,9 +20,81 @@ db.init_app(app)
 api = Api(app)
 
 
-@app.route("/")
-def index():
-    return "<h1>Code challenge</h1>"
+class Restaurants(Resource):
+    def get(self):
+        try:
+            return make_response([restaurant.to_dict() for restaurant in Restaurant.query.all()], 200)
+        except Exception as e:
+                return make_response({
+  "error": "Restaurant not found"
+}, 404)   
+        
+api.add_resource(Restaurants, '/restaurants')
+        
+
+class RestaurantsById(Resource):
+    def get(self, id):
+        try:
+            restaurant = db.session.get(Restaurant, id)
+            if restaurant is None:
+                return make_response({
+  "error": "Restaurant not found"
+}, 404)   
+            else:
+                return make_response(restaurant.to_dict(rules=('restaurant_pizzas',)),200)
+        except:
+                return make_response({
+  "error": "Restaurant not found"
+}, 404)   
+        
+    def delete(self,id):
+        try:
+            restaurant = db.session.get(Restaurant, id)
+            if restaurant is None:
+                return make_response({
+  "error": "Restaurant not found"
+}, 404)    
+            else:
+                db.session.delete(restaurant)
+                db.session.commit()
+                return make_response('', 204)
+        except:
+                return make_response("Restaurant not found", 404)
+
+        
+api.add_resource(RestaurantsById, '/restaurants/<int:id>')
+
+
+class Pizzas(Resource):
+    def get(self):
+        try:
+            return make_response([pizza.to_dict() for pizza in Pizza.query.all()], 200)
+        except Exception as e:
+            return make_response(str(e), 404)
+        
+api.add_resource(Pizzas, '/pizzas')
+
+
+class RestaurantsPizzas(Resource):
+    def post(self):
+
+        try:
+            data = request.get_json()
+            new_rp = RestaurantPizza(**data)
+            db.session.add(new_rp)
+            db.session.commit()
+            return make_response(new_rp.to_dict(),201)
+        except Exception as e:
+            db.session.rollback()
+            return make_response({
+  "errors": ["validation errors"]
+}, 400)
+        
+api.add_resource(RestaurantsPizzas, '/restaurant_pizzas')
+
+
+
+
 
 
 if __name__ == "__main__":
